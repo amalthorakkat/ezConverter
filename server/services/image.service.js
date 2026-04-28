@@ -7,6 +7,7 @@ module.exports = async (inputPath, format) => {
     Date.now() + "-" + Math.round(Math.random() * 1e9) + "." + format;
 
   const outputDir = path.join(__dirname, "../outputs");
+
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -15,18 +16,28 @@ module.exports = async (inputPath, format) => {
 
   let pipeline = sharp(inputPath);
 
-  // Choose format
   switch (format) {
     case "png":
-      pipeline = pipeline.png();
+      pipeline = pipeline.png({
+        compressionLevel: 0, // minimal compression, no loss
+      });
       break;
+
     case "webp":
-      pipeline = pipeline.webp();
+      pipeline = pipeline.webp({
+        lossless: true, // 🔥 NO QUALITY LOSS
+      });
       break;
+
     case "jpeg":
     case "jpg":
-      pipeline = pipeline.jpeg();
+      // ⚠️ JPEG cannot be truly lossless
+      pipeline = pipeline.jpeg({
+        quality: 100,
+        chromaSubsampling: "4:4:4", // best possible quality
+      });
       break;
+
     default:
       throw new Error("Unsupported format");
   }
