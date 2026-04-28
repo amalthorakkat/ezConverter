@@ -44,6 +44,10 @@ exports.convertFile = async (req, res, next) => {
       }
     });
   } catch (error) {
+    // If an error happens before sendFile, ensure the uploaded file is cleaned up
+    if (req.file && req.file.path) {
+      await cleanupFiles(req.file.path);
+    }
     next(error);
   }
 };
