@@ -1,0 +1,32 @@
+server/
+│
+├── src/
+│   ├── modules/
+│   │   └── file/
+│   │       ├── file.routes.js
+│   │       ├── file.controller.js
+│   │       └── file.service.js
+│   │
+│   ├── middleware/
+│   │   ├── upload.middleware.js
+│   │   └── error.middleware.js
+│   │
+│   ├── services/
+│   │   ├── image.service.js
+│   │   └── cleanup.service.js
+│   │
+│   ├── utils/
+│   │   ├── generateFileName.js
+│   │   └── asyncHandler.js
+│   │
+│   ├── routes/
+│   │   └── index.js
+│   │
+│   ├── app.js
+│   └── server.js
+│
+├── uploads/     # temp input files
+├── outputs/     # temp converted files
+│
+├── .env
+└── package.json
