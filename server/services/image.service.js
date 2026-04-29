@@ -1,14 +1,18 @@
 const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
+const heicConvert = require("heic-convert");
 
 /**
  * Core image processing service using the sharp library.
  * Reads an input image, applies format-specific high-quality conversions,
  * and saves the output to a designated directory.
  *
+ * HEIC/HEIF files are pre-decoded via heic-convert since Sharp's bundled
+ * libvips may not include HEIF decoding support on all platforms.
+ *
  * @param {string} inputPath - The absolute path of the original image to convert.
- * @param {string} format - The desired target format ('png', 'webp', 'jpeg', or 'jpg').
+ * @param {string} format - The desired target format ('png', 'webp', 'jpeg', 'jpg', 'avif', 'tiff', or 'gif').
  * @returns {Promise<string>} - Resolves with the absolute path to the newly created image.
  */
 module.exports = async (inputPath, format) => {
@@ -25,28 +29,68 @@ module.exports = async (inputPath, format) => {
 
   const outputPath = path.join(outputDir, outputFileName);
 
-  let pipeline = sharp(inputPath);
+  // --- HEIC/HEIF pre-processing ---
+  // Sharp can't decode HEIC natively on most builds, so we convert to a PNG buffer first
+  const ext = path.extname(inputPath).toLowerCase();
+  let sharpInput;
+
+  if (ext === ".heic" || ext === ".heif") {
+    const inputBuffer = fs.readFileSync(inputPath);
+    const pngBuffer = await heicConvert({
+      buffer: inputBuffer,
+      format: "PNG", // Lossless intermediate to avoid double quality loss
+    });
+    sharpInput = Buffer.from(pngBuffer);
+  } else {
+    sharpInput = inputPath;
+  }
+
+  let pipeline = sharp(sharpInput).withMetadata(); // Preserve EXIF, ICC color profiles, orientation
 
   // Apply format-specific conversion settings optimized for the highest possible quality
   switch (format) {
     case "png":
       pipeline = pipeline.png({
-        compressionLevel: 0, // Minimal compression, completely lossless
+        compressionLevel: 0, // No compression = lossless + fastest
+        adaptiveFiltering: true,
       });
       break;
 
     case "webp":
       pipeline = pipeline.webp({
-        lossless: true, // No quality loss
+        lossless: true, // Pixel-perfect lossless output
+        effort: 6, // Maximum compression effort (no quality loss)
       });
       break;
 
     case "jpeg":
     case "jpg":
-      // Note: JPEG is inherently a lossy format, but we use settings for maximum quality
       pipeline = pipeline.jpeg({
         quality: 100,
-        chromaSubsampling: "4:4:4", // Best possible color retention
+        chromaSubsampling: "4:4:4", // Full color resolution, no chroma downsampling
+        mozjpeg: true, // Better encoder — higher quality at same file size
+      });
+      break;
+
+    case "avif":
+      pipeline = pipeline.avif({
+        quality: 90, // Near-lossless; AVIF at 90 is visually indistinguishable from source
+        effort: 6, // Max compression effort for best quality-to-size ratio
+        lossless: false,
+      });
+      break;
+
+    case "tiff":
+      pipeline = pipeline.tiff({
+        compression: "lzw", // Lossless LZW
+        predictor: "horizontal", // Improves LZW compression on continuous-tone images
+        quality: 100,
+      });
+      break;
+
+    case "gif":
+      pipeline = pipeline.gif({
+        effort: 10, // Max effort for best dithering/palette selection
       });
       break;
 

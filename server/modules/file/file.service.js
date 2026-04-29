@@ -2,7 +2,7 @@ const path = require("path");
 const convertImage = require("../../services/image.service");
 
 // Define supported target conversion formats
-const allowedFormats = ["png", "jpg", "jpeg", "webp"];
+const allowedFormats = ["png", "jpg", "jpeg", "webp", "avif", "tiff", "gif"];
 
 /**
  * Validates the requested format and delegates the image conversion task

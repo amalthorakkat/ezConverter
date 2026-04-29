@@ -19,7 +19,7 @@ export const convertImage = createAsyncThunk(
 
       // Attempt to extract the filename from the Content-Disposition header
       const disposition = response.headers["content-disposition"];
-      let filename = `converted_image.${format}`;
+      let filename = `Ezy-Convert_image.${format}`;
 
       if (disposition && disposition.indexOf("attachment") !== -1) {
         const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(

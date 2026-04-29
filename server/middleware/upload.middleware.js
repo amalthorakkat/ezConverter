@@ -27,11 +27,27 @@ const storage = multer.diskStorage({
   },
 });
 
+// MIME types that are always acceptable
+const ALLOWED_MIMETYPES = new Set([
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence',
+]);
+
+// Extension-based fallback for files whose MIME type is ambiguous (e.g. Windows reports HEIC as application/octet-stream)
+const ALLOWED_EXTENSIONS = new Set([
+  '.heic', '.heif', '.png', '.jpg', '.jpeg', '.webp', '.avif', '.tiff', '.tif', '.gif',
+]);
+
 /**
  * Filter incoming uploads to strictly allow only image files.
+ * Handles HEIC/HEIF which Windows often reports as application/octet-stream.
  */
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (file.mimetype.startsWith('image/') || ALLOWED_MIMETYPES.has(file.mimetype) || ALLOWED_EXTENSIONS.has(ext)) {
     cb(null, true); // Accept the file
   } else {
     // Reject non-image files with a properly formatted HTTP 400 error
