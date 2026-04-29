@@ -5,7 +5,14 @@ import { convertImage } from "../../../features/converter/converterSlice";
 
 const ImageConvert = () => {
   const dispatch = useDispatch();
-  const { isLoading, error } = useSelector((state) => state.convert); // Assuming slice is named 'convert'
+  const {
+    isLoading,
+    error,
+    phase,
+    uploadProgress,
+    conversionProgress,
+    conversionStage,
+  } = useSelector((state) => state.convert);
 
   const [file, setFile] = useState(null);
   const [format, setFormat] = useState("png");
@@ -42,12 +49,29 @@ const ImageConvert = () => {
     }
   };
 
+  // --- Compute overall progress for the progress bar ---
+  const getOverallProgress = () => {
+    if (!phase) return 0;
+    // Upload = 0–30%, Conversion = 30–90%, Download = 90–100%
+    if (phase === "upload") return Math.round(uploadProgress * 0.3);
+    if (phase === "conversion") return Math.round(30 + conversionProgress * 0.6);
+    if (phase === "download") return 95;
+    return 0;
+  };
+
+  const getProgressLabel = () => {
+    if (!phase) return "";
+    if (phase === "upload") return `Uploading... ${uploadProgress}%`;
+    if (phase === "conversion") return conversionStage || "Converting...";
+    if (phase === "download") return "Downloading...";
+    return "";
+  };
+
   // --- Submission Handler ---
   const handleConvert = async () => {
     if (!file) return alert("Please select a file first.");
 
     try {
-      // unwrap() allows us to catch errors locally and get the returned payload directly
       const { url, filename } = await dispatch(
         convertImage({ file, format }),
       ).unwrap();
@@ -68,9 +92,10 @@ const ImageConvert = () => {
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
       console.error("Conversion failed:", err);
-      // Redux slice state already holds the error, but you could trigger an error toast here
     }
   };
+
+  const overallProgress = getOverallProgress();
 
   return (
     <motion.main
@@ -155,13 +180,14 @@ const ImageConvert = () => {
                 </div>
                 <div className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-widest">
                   {(file.size / 1024 / 1024).toFixed(2)} MB •{" "}
-                  {file.type.split("/")[1]}
+                  {file.type.split("/")[1] || file.name.split(".").pop()}
                 </div>
               </div>
             </div>
             <button
               onClick={() => setFile(null)}
-              className="text-gray-500 hover:text-red-600 transition-colors p-1 border-2 border-transparent hover:border-red-600"
+              disabled={isLoading}
+              className="text-gray-500 hover:text-red-600 transition-colors p-1 border-2 border-transparent hover:border-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -171,6 +197,28 @@ const ImageConvert = () => {
         {/* Error Display */}
         {error && (
           <p className="text-red-600 font-bold mb-4 text-center">{error}</p>
+        )}
+
+        {/* Progress Bar — shown during active conversion */}
+        {isLoading && phase && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                {getProgressLabel()}
+              </span>
+              <span className="text-xs font-bold text-black">
+                {overallProgress}%
+              </span>
+            </div>
+            <div className="w-full h-3 bg-gray-200 border-2 border-black overflow-hidden">
+              <motion.div
+                className="h-full bg-black"
+                initial={{ width: 0 }}
+                animate={{ width: `${overallProgress}%` }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              />
+            </div>
+          </div>
         )}
 
         {/* Settings & Action Row */}
@@ -186,11 +234,14 @@ const ImageConvert = () => {
                   <button
                     key={fmt}
                     onClick={() => setFormat(fmt)}
+                    disabled={isLoading}
                     className={`flex-1 md:flex-none px-5 py-2 text-sm font-bold transition-colors ${
                       format === fmt
                         ? "bg-black text-white"
                         : "bg-white text-black hover:bg-gray-100"
-                    } ${i > 0 ? "border-l-2 border-black" : ""}`}
+                    } ${i > 0 ? "border-l-2 border-black" : ""} ${
+                      isLoading ? "cursor-not-allowed opacity-50" : ""
+                    }`}
                   >
                     {fmt.toUpperCase()}
                   </button>

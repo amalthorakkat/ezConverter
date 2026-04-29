@@ -10,10 +10,11 @@ const allowedFormats = ["png", "jpg", "jpeg", "webp", "avif", "tiff", "gif"];
  *
  * @param {string} inputPath - The absolute path to the uploaded original file.
  * @param {string} format - The desired target format (e.g., 'png', 'webp').
+ * @param {function} [onProgress] - Optional progress callback: (progress, stage) => void
  * @returns {Promise<string>} - Resolves with the absolute path to the converted image.
  * @throws {Error} - Throws a custom error if validation or conversion fails.
  */
-exports.processConversion = async (inputPath, format) => {
+exports.processConversion = async (inputPath, format, onProgress) => {
   // Ensure a format is provided
   if (!format) {
     const err = new Error("Target format is required");
@@ -31,7 +32,7 @@ exports.processConversion = async (inputPath, format) => {
   }
 
   // Delegate the actual heavy lifting to the image service (Sharp)
-  const outputPath = await convertImage(inputPath, normalizedFormat);
+  const outputPath = await convertImage(inputPath, normalizedFormat, onProgress);
 
   // Sanity check: verify the output filename generated has a valid extension
   const ext = path.extname(outputPath);

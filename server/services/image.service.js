@@ -13,9 +13,16 @@ const heicConvert = require("heic-convert");
  *
  * @param {string} inputPath - The absolute path of the original image to convert.
  * @param {string} format - The desired target format ('png', 'webp', 'jpeg', 'jpg', 'avif', 'tiff', or 'gif').
+ * @param {function} [onProgress] - Optional callback: (progress: number, stage: string) => void
  * @returns {Promise<string>} - Resolves with the absolute path to the newly created image.
  */
-module.exports = async (inputPath, format) => {
+module.exports = async (inputPath, format, onProgress) => {
+  const report = (p, s) => {
+    if (typeof onProgress === "function") onProgress(p, s);
+  };
+
+  report(5, "Reading input file");
+
   // Generate a unique filename using timestamp and a random suffix to prevent collisions
   const outputFileName =
     Date.now() + "-" + Math.round(Math.random() * 1e9) + "." + format;
@@ -35,15 +42,20 @@ module.exports = async (inputPath, format) => {
   let sharpInput;
 
   if (ext === ".heic" || ext === ".heif") {
+    report(10, "Decoding HEIC/HEIF");
     const inputBuffer = fs.readFileSync(inputPath);
     const pngBuffer = await heicConvert({
       buffer: inputBuffer,
       format: "PNG", // Lossless intermediate to avoid double quality loss
     });
     sharpInput = Buffer.from(pngBuffer);
+    report(40, "HEIC decoded successfully");
   } else {
     sharpInput = inputPath;
+    report(15, "Input loaded");
   }
+
+  report(50, `Encoding to ${format.toUpperCase()}`);
 
   let pipeline = sharp(sharpInput).withMetadata(); // Preserve EXIF, ICC color profiles, orientation
 
@@ -98,8 +110,12 @@ module.exports = async (inputPath, format) => {
       throw new Error("Unsupported format");
   }
 
+  report(60, "Processing image data");
+
   // Execute the conversion and write the output file
   await pipeline.toFile(outputPath);
+
+  report(95, "Writing output file");
 
   return outputPath;
 };
