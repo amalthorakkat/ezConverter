@@ -2,6 +2,34 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
 /**
+ * Helper to map technical errors to user-friendly messages.
+ */
+const getFriendlyErrorMessage = (error) => {
+  if (!error.response) {
+    if (error.request) return "Network error. Please check your internet connection.";
+    return "An unexpected error occurred. Please try again.";
+  }
+
+  const status = error.response.status;
+  const message = error.response.data?.message;
+
+  switch (status) {
+    case 400:
+      return message || "Invalid file or format. Please try again.";
+    case 404:
+      return "Oops! We couldn't find your conversion. It might have expired (10 min limit).";
+    case 413:
+      return "File is too large! Please upload a file under 10MB.";
+    case 429:
+      return "You're converting files too fast! Please wait a few minutes.";
+    case 500:
+      return "Our server is having a moment. Please try again shortly.";
+    default:
+      return message || "Something went wrong. Let's try that again.";
+  }
+};
+
+/**
  * Helper: polls GET /files/status/:jobId every 500ms until
  * the job is completed or failed. Dispatches progress updates.
  */
@@ -11,7 +39,6 @@ const pollJobStatus = (jobId, dispatch) => {
       try {
         const { data } = await api.get(`/files/status/${jobId}`);
 
-        // Dispatch progress update to redux
         dispatch(
           setConversionProgress({
             progress: data.progress,
@@ -24,7 +51,7 @@ const pollJobStatus = (jobId, dispatch) => {
           resolve(data);
         } else if (data.status === "failed") {
           clearInterval(interval);
-          reject(new Error(data.error || "Conversion failed"));
+          reject(new Error(data.error || "The conversion process failed."));
         }
       } catch (err) {
         clearInterval(interval);
@@ -34,7 +61,70 @@ const pollJobStatus = (jobId, dispatch) => {
   });
 };
 
-// Async Thunk for handling the full conversion lifecycle
+export const downloadJobResult = createAsyncThunk(
+  "convert/downloadJobResult",
+  async ({ jobId, format }, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/files/download/${jobId}`, {
+        responseType: "blob",
+      });
+
+      const disposition = response.headers["content-disposition"];
+      let filename = `Ezy-Convert_image.${format}`;
+
+      if (disposition && disposition.indexOf("attachment") !== -1) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(
+          disposition,
+        );
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, "");
+        }
+      }
+
+      const fileUrl = window.URL.createObjectURL(new Blob([response.data]));
+      localStorage.removeItem("activeJobId");
+
+      return { url: fileUrl, filename };
+    } catch (error) {
+      return rejectWithValue(getFriendlyErrorMessage(error));
+    }
+  },
+);
+
+export const recoverJob = createAsyncThunk(
+  "convert/recoverJob",
+  async (jobId, { dispatch, rejectWithValue }) => {
+    try {
+      const { data } = await api.get(`/files/status/${jobId}`);
+
+      dispatch(
+        setRecoveredJob({
+          jobId,
+          originalName: data.originalName,
+          format: data.format,
+          createdAt: data.createdAt,
+        }),
+      );
+
+      if (data.status === "processing" || data.status === "pending") {
+        dispatch(setConversionPhase());
+        await pollJobStatus(jobId, dispatch);
+        dispatch(setDownloadPhase());
+      } else if (data.status === "completed") {
+        dispatch(setDownloadPhase());
+      } else if (data.status === "failed") {
+        localStorage.removeItem("activeJobId");
+        return rejectWithValue(data.error || "The previous conversion failed.");
+      }
+
+      return data;
+    } catch (error) {
+      localStorage.removeItem("activeJobId");
+      return rejectWithValue(getFriendlyErrorMessage(error));
+    }
+  },
+);
+
 export const convertImage = createAsyncThunk(
   "convert/convertImage",
   async ({ file, format }, { dispatch, rejectWithValue }) => {
@@ -43,7 +133,6 @@ export const convertImage = createAsyncThunk(
       formData.append("file", file);
       formData.append("format", format);
 
-      // --- Phase 1: Upload file (track upload progress) ---
       dispatch(setUploadPhase());
 
       const uploadResponse = await api.post("/files/convert", formData, {
@@ -57,49 +146,17 @@ export const convertImage = createAsyncThunk(
       });
 
       const { jobId } = uploadResponse.data;
+      localStorage.setItem("activeJobId", jobId);
+      dispatch(setActiveJobId(jobId));
 
-      // --- Phase 2: Poll for conversion progress ---
       dispatch(setConversionPhase());
-
       await pollJobStatus(jobId, dispatch);
-
-      // --- Phase 3: Download the result ---
       dispatch(setDownloadPhase());
 
-      const downloadResponse = await api.get(`/files/download/${jobId}`, {
-        responseType: "blob",
-      });
-
-      // Extract filename from Content-Disposition header
-      const disposition = downloadResponse.headers["content-disposition"];
-      let filename = `Ezy-Convert_image.${format}`;
-
-      if (disposition && disposition.indexOf("attachment") !== -1) {
-        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(
-          disposition,
-        );
-        if (matches != null && matches[1]) {
-          filename = matches[1].replace(/['"]/g, "");
-        }
-      }
-
-      // Create a local URL representing the blob data
-      const fileUrl = window.URL.createObjectURL(
-        new Blob([downloadResponse.data]),
-      );
-
-      return { url: fileUrl, filename };
+      return { jobId, format };
     } catch (error) {
-      if (error.response && error.response.data instanceof Blob) {
-        const text = await error.response.data.text();
-        try {
-          const json = JSON.parse(text);
-          return rejectWithValue(json.message || "Conversion failed");
-        } catch {
-          return rejectWithValue(text || "Conversion failed");
-        }
-      }
-      return rejectWithValue(error.message || "An unexpected error occurred");
+      localStorage.removeItem("activeJobId");
+      return rejectWithValue(getFriendlyErrorMessage(error));
     }
   },
 );
@@ -109,20 +166,40 @@ const convertSlice = createSlice({
   initialState: {
     isLoading: false,
     error: null,
-    // Progress tracking
-    phase: null, // "upload" | "conversion" | "download" | null
-    uploadProgress: 0, // 0–100
-    conversionProgress: 0, // 0–100
-    conversionStage: "", // e.g. "Encoding to PNG"
+    activeJobId: null,
+    originalName: null,
+    recoveredFormat: null,
+    createdAt: null,
+    phase: null,
+    uploadProgress: 0,
+    conversionProgress: 0,
+    conversionStage: "",
   },
   reducers: {
     resetConvertState: (state) => {
       state.error = null;
       state.isLoading = false;
+      state.activeJobId = null;
+      state.originalName = null;
+      state.recoveredFormat = null;
+      state.createdAt = null;
       state.phase = null;
       state.uploadProgress = 0;
       state.conversionProgress = 0;
       state.conversionStage = "";
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+    setActiveJobId: (state, action) => {
+      state.activeJobId = action.payload;
+      state.createdAt = Date.now();
+    },
+    setRecoveredJob: (state, action) => {
+      state.activeJobId = action.payload.jobId;
+      state.originalName = action.payload.originalName;
+      state.recoveredFormat = action.payload.format;
+      state.createdAt = action.payload.createdAt;
     },
     setUploadPhase: (state) => {
       state.phase = "upload";
@@ -151,17 +228,46 @@ const convertSlice = createSlice({
         state.isLoading = true;
         state.error = null;
         state.phase = null;
-        state.uploadProgress = 0;
-        state.conversionProgress = 0;
-        state.conversionStage = "";
       })
       .addCase(convertImage.fulfilled, (state) => {
         state.isLoading = false;
-        state.phase = null;
       })
       .addCase(convertImage.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+        state.phase = null;
+      })
+      .addCase(recoverJob.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(recoverJob.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(recoverJob.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+        state.activeJobId = null;
+        state.originalName = null;
+        state.recoveredFormat = null;
+        state.createdAt = null;
+        state.phase = null;
+      })
+      .addCase(downloadJobResult.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(downloadJobResult.fulfilled, (state) => {
+        state.isLoading = false;
+        state.phase = null;
+        state.activeJobId = null;
+      })
+      .addCase(downloadJobResult.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+        state.activeJobId = null;
+        state.originalName = null;
+        state.recoveredFormat = null;
+        state.createdAt = null;
         state.phase = null;
       });
   },
@@ -169,6 +275,9 @@ const convertSlice = createSlice({
 
 export const {
   resetConvertState,
+  clearError,
+  setActiveJobId,
+  setRecoveredJob,
   setUploadPhase,
   setUploadProgress,
   setConversionPhase,

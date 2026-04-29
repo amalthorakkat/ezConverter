@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const cleanupFiles = require("./cleanup.service");
 
 /**
  * In-memory job store for tracking conversion progress.
@@ -22,6 +23,8 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, job] of jobs) {
     if (now - job.createdAt > JOB_TTL_MS) {
+      // Clean up any orphaned files left on disk (e.g. user refreshed and never downloaded)
+      cleanupFiles(job.inputPath, job.outputPath);
       jobs.delete(id);
     }
   }
@@ -30,7 +33,7 @@ setInterval(() => {
 /**
  * Create a new job and return its unique ID.
  */
-exports.createJob = (inputPath, format) => {
+exports.createJob = (inputPath, format, originalName) => {
   const jobId = crypto.randomUUID();
   jobs.set(jobId, {
     status: "pending",
@@ -38,6 +41,7 @@ exports.createJob = (inputPath, format) => {
     stage: "Queued",
     outputPath: null,
     format,
+    originalName,
     inputPath,
     error: null,
     createdAt: Date.now(),

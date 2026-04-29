@@ -28,7 +28,7 @@ exports.convertFile = async (req, res, next) => {
     }
 
     // --- 2. Create a job and return immediately ---
-    const jobId = jobManager.createJob(file.path, format);
+    const jobId = jobManager.createJob(file.path, format, file.originalname);
     res.status(202).json({ jobId });
 
     // --- 3. Process asynchronously (non-blocking) ---
@@ -83,6 +83,9 @@ exports.getJobStatus = (req, res) => {
     progress: job.progress,
     stage: job.stage,
     error: job.error,
+    originalName: job.originalName,
+    format: job.format,
+    createdAt: job.createdAt,
   });
 };
 
