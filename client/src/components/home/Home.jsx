@@ -1,8 +1,10 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import HeroGraphic from "./HeroGraphic";
 
 const Home = () => {
+  const navigate = useNavigate();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -67,7 +69,7 @@ const Home = () => {
           </motion.p>
           
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 mt-4">
-            <button className="relative cursor-pointer overflow-hidden bg-black text-white text-sm font-bold tracking-wide px-8 py-4 border-2 border-black transition-all duration-300 hover:bg-[#333333] outline-none active:scale-95 text-center w-full sm:w-auto after:absolute after:inset-0 after:content-[''] after:bg-[radial-gradient(circle,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0)_70%)] after:scale-0 after:transition-transform after:duration-500 hover:after:scale-[4]">
+            <button onClick={() => navigate("/convert/image")} className="relative cursor-pointer overflow-hidden bg-black text-white text-sm font-bold tracking-wide px-8 py-4 border-2 border-black transition-all duration-300 hover:bg-[#333333] outline-none active:scale-95 text-center w-full sm:w-auto after:absolute after:inset-0 after:content-[''] after:bg-[radial-gradient(circle,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0)_70%)] after:scale-0 after:transition-transform after:duration-500 hover:after:scale-[4]">
               Convert Now
             </button>
             <button className="bg-transparent text-black text-sm font-bold tracking-wide px-8 py-4 border-2 border-black hover:bg-gray-100 transition-colors text-center w-full sm:w-auto">

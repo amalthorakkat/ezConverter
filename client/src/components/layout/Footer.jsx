@@ -1,8 +1,15 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const Footer = () => {
   return (
-    <footer className="w-full bg-white border-t-2 border-black font-['Inter'] mt-auto">
+    <motion.footer 
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="w-full bg-white border-t-2 border-black font-['Inter'] mt-auto"
+    >
       <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
           <span className="text-xl font-extrabold uppercase text-black tracking-tighter">
@@ -19,7 +26,7 @@ const Footer = () => {
           &copy; {new Date().getFullYear()} EZY CONVERT
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 
