@@ -143,7 +143,7 @@ const ImageConvert = () => {
         window.URL.revokeObjectURL(url);
 
         setShowToast(true);
-        setTimeout(() => setShowToast(false), 4000);
+        setTimeout(() => setShowToast(false), 3000);
       } catch (err) {
         console.error("Download failed:", err);
       }
@@ -170,7 +170,7 @@ const ImageConvert = () => {
       window.URL.revokeObjectURL(url);
 
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 4000);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
       console.error("Process failed:", err);
     }
@@ -196,47 +196,55 @@ const ImageConvert = () => {
       <AnimatePresence>
         {showToast && (
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            className="fixed top-6 right-6 bg-white border-2 border-black px-6 py-3 flex items-center gap-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-6 right-6 bg-white border-2 border-black px-4 py-2 flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-40"
           >
-            <span className="material-symbols-outlined text-black font-bold">task_alt</span>
-            <div className="flex flex-col">
-              <span className="text-xs font-black uppercase tracking-tighter">Success!</span>
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Your image is ready.</span>
-            </div>
+            <span
+              className="material-symbols-outlined text-[16px] text-black"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              check_circle
+            </span>
+            <span className="text-xs font-bold uppercase tracking-widest text-black">
+              Download Started
+            </span>
           </motion.div>
         )}
 
         {warningToast && (
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            className="fixed top-6 right-6 bg-[#FFEE00] border-2 border-black px-6 py-3 flex items-center gap-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-6 right-6 bg-white border-2 border-red-600 px-4 py-2 flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(220,38,38,1)] z-40"
           >
-            <span className="material-symbols-outlined text-black font-bold">warning</span>
-            <div className="flex flex-col">
-              <span className="text-xs font-black uppercase tracking-tighter">Wait a second!</span>
-              <span className="text-[10px] font-bold text-black/70 uppercase max-w-[200px]">Download your file before starting another.</span>
-            </div>
+            <span
+              className="material-symbols-outlined text-[16px] text-red-600"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              warning
+            </span>
+            <span className="text-xs font-bold uppercase tracking-widest text-red-600">
+              Download the converted file to convert another
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* Header Section */}
       <div className="text-center mb-12 w-full">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-black mb-4 uppercase italic">
-          Ezy Convert.
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-black mb-4">
+          Convert Anything.
         </h1>
-        <p className="text-lg text-gray-600 max-w-xl mx-auto font-medium">
-          The fastest way to swap image formats. Zero fluff.
+        <p className="text-lg text-gray-600 max-w-xl mx-auto">
+          Drop your file below to begin the instantaneous conversion process.
         </p>
       </div>
 
-      {/* Interface */}
-      <div className="w-full bg-white border-4 border-black p-4 md:p-8 relative">
+      {/* Conversion Interface Container */}
+      <div className="w-full bg-white border-2 border-black p-4 md:p-8 relative group/container">
         <div className="absolute -inset-2 bg-gray-200 -z-10 hidden md:block border-2 border-black"></div>
 
         {/* User-Friendly Error Alert */}
@@ -251,7 +259,7 @@ const ImageConvert = () => {
               <div className="bg-[#FF3333] border-2 border-black p-4 flex items-center justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <div className="flex items-center gap-3 text-white">
                   <span className="material-symbols-outlined">error</span>
-                  <span className="text-sm font-black uppercase tracking-tighter leading-tight">
+                  <span className="text-sm font-bold uppercase tracking-widest leading-tight">
                     {error}
                   </span>
                 </div>
@@ -266,19 +274,22 @@ const ImageConvert = () => {
           )}
         </AnimatePresence>
 
-        {/* Drop Zone */}
+        {/* Drag and Drop Zone */}
         {!file && !activeJobId ? (
           <div
             onClick={triggerFileSelect}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="border-4 border-dashed border-black bg-gray-50 flex flex-col items-center justify-center p-12 md:p-20 mb-6 cursor-pointer hover:bg-black group transition-all"
+            className="border-2 border-dashed border-black bg-gray-50 flex flex-col items-center justify-center p-12 md:p-20 mb-6 cursor-pointer hover:bg-gray-100 transition-colors group"
           >
-            <span className="material-symbols-outlined text-[64px] mb-4 text-black group-hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-[48px] mb-4 text-gray-500 group-hover:text-black transition-colors">
               upload_file
             </span>
-            <span className="text-2xl font-black text-black group-hover:text-white uppercase italic tracking-tighter">
-              Drop Image Here
+            <span className="text-2xl font-bold text-black mb-2">
+              Drag & Drop Image
+            </span>
+            <span className="text-base text-gray-500">
+              or click to browse your files
             </span>
             <input
               ref={fileInputRef}
@@ -289,9 +300,10 @@ const ImageConvert = () => {
             />
           </div>
         ) : (
-          <div className="flex items-center justify-between border-4 border-black p-4 bg-gray-100 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          /* Active Image Preview / Restored Session Info */
+          <div className="flex items-center justify-between border-2 border-black p-4 bg-gray-100 mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white border-2 border-black overflow-hidden flex items-center justify-center">
+              <div className="w-12 h-12 bg-gray-200 border-2 border-black overflow-hidden flex items-center justify-center">
                 {file ? (
                   <img
                     src={URL.createObjectURL(file)}
@@ -299,16 +311,18 @@ const ImageConvert = () => {
                     className="w-full h-full object-cover grayscale"
                   />
                 ) : (
-                  <span className="material-symbols-outlined text-gray-400 text-3xl">image</span>
+                  <span className="material-symbols-outlined text-gray-400">
+                    image
+                  </span>
                 )}
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-black text-black truncate max-w-[150px] sm:max-w-xs uppercase tracking-tighter leading-none">
+              <div>
+                <div className="text-sm font-bold text-black truncate max-w-[200px] sm:max-w-xs">
                   {displayName}
-                </span>
-                <span className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest">
+                </div>
+                <div className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-widest">
                   {displaySize} • {displayType}
-                </span>
+                </div>
               </div>
             </div>
             <button
@@ -322,25 +336,25 @@ const ImageConvert = () => {
                 dispatch(resetConvertState());
               }}
               disabled={isLoading && phase !== "download"}
-              className="bg-white border-2 border-black p-1 hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="text-gray-500 hover:text-red-600 transition-colors p-1 border-2 border-transparent hover:border-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
         )}
 
-        {/* Progress Bar */}
+        {/* Progress Bar — shown during active conversion */}
         {isLoading && phase && (
-          <div className="mb-8">
+          <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-black uppercase tracking-tighter text-black italic">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
                 {getProgressLabel()}
               </span>
-              <span className="text-xs font-black text-black">
+              <span className="text-xs font-bold text-black">
                 {overallProgress}%
               </span>
             </div>
-            <div className="w-full h-5 bg-gray-200 border-4 border-black overflow-hidden">
+            <div className="w-full h-3 bg-gray-200 border-2 border-black overflow-hidden">
               <motion.div
                 className="h-full bg-black"
                 initial={{ width: 0 }}
@@ -351,38 +365,45 @@ const ImageConvert = () => {
           </div>
         )}
 
-        {/* Footer Actions */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-t-4 border-black pt-6">
+        {/* Settings & Action Row */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-t-2 border-black pt-6">
+          {/* Format Selector */}
           <div className="flex flex-col w-full md:w-auto">
-            <span className="text-xs font-black uppercase tracking-tighter text-black mb-3 italic">
-              1. Choose Format
+            <span className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+              Target Format
             </span>
-            <div className="flex flex-wrap border-2 border-black w-full md:w-auto bg-black gap-0.5">
+            <div className="flex flex-wrap border-2 border-black w-full md:w-auto">
               {["png", "jpg", "webp", "avif", "tiff", "gif"].map((fmt) => (
                 <button
                   key={fmt}
                   onClick={() => setFormat(fmt)}
                   disabled={isLoading || (phase && phase !== "download")}
-                  className={`flex-1 md:flex-none px-6 py-2 text-xs font-black transition-all uppercase tracking-tighter ${
+                  className={`flex-1 md:flex-none px-5 py-2 text-sm font-bold transition-colors ${
                     (recoveredFormat || format) === fmt
-                      ? "bg-[#FFEE00] text-black"
+                      ? "bg-black text-white"
                       : "bg-white text-black hover:bg-gray-100"
-                  } ${isLoading || (phase && phase !== "download") ? "cursor-not-allowed opacity-50" : ""}`}
+                  } border-r-2 last:border-r-0 border-black ${
+                    isLoading || (phase && phase !== "download")
+                      ? "cursor-not-allowed opacity-50"
+                      : ""
+                  }`}
                 >
-                  {fmt}
+                  {fmt.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Action Button */}
           <div className="relative group/btn w-full md:w-auto">
+            {/* Countdown Tooltip */}
             {showTimer && phase === "download" && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-black text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 border-2 border-white whitespace-nowrap z-50 pointer-events-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 border border-white whitespace-nowrap z-50 pointer-events-none"
               >
-                Expires: {timeLeft}
+                Expires in: {timeLeft}
               </motion.div>
             )}
 
@@ -391,23 +412,27 @@ const ImageConvert = () => {
               onMouseEnter={() => setShowTimer(true)}
               onMouseLeave={() => setShowTimer(false)}
               disabled={(!file && !activeJobId) || (isLoading && phase !== "download")}
-              className={`w-full md:w-auto px-10 py-4 text-sm font-black uppercase italic tracking-tighter transition-all flex items-center justify-center gap-3 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] ${
+              className={`w-full md:w-auto px-8 py-3.5 text-sm font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 duration-200 ${
                 (!file && !activeJobId) || (isLoading && phase !== "download")
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-black text-white hover:bg-white hover:text-black"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-black text-white hover:bg-[#333333] active:scale-95"
               }`}
             >
               {isLoading && phase !== "download" ? (
-                "Processing..."
+                "Converting..."
               ) : phase === "download" ? (
                 <>
-                  Get Result
-                  <span className="material-symbols-outlined text-[20px] font-black">download</span>
+                  Download Result
+                  <span className="material-symbols-outlined text-[18px]">
+                    download
+                  </span>
                 </>
               ) : (
                 <>
                   Convert Now
-                  <span className="material-symbols-outlined text-[20px] font-black">arrow_forward</span>
+                  <span className="material-symbols-outlined text-[18px]">
+                    arrow_forward
+                  </span>
                 </>
               )}
             </button>
